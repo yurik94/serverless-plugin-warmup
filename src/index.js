@@ -327,10 +327,15 @@ module.exports.warmUp = async (event, context) => {
   const invokes = await Promise.all(functions.map(async (func) => {
     let concurrency;
     const functionConcurrency = process.env[\`WARMUP_CONCURRENCY_\${func.name.toUpperCase().replace(/-/g, '_')}\`];
+    let alias = '$LATEST';
+    const functionConcurrencyAlias = process.env[\`WARMUP_CONCURRENCY_ALIAS_\${func.name.toUpperCase().replace(/-/g, '_')}\`];
 
     if (functionConcurrency) {
-      concurrency = parseInt(functionConcurrency);
-      console.log(\`Warming up function: \${func.name} with concurrency: \${concurrency} (from function-specific environment variable)\`);
+      concurrency = parseInt(functionConcurrency);      
+      if(functionConcurrencyAlias) {
+        alias = functionConcurrencyAlias;
+        console.log(\`Warming up function: \${func.name}:\${alias} with concurrency: \${concurrency} (from function-specific environment variable)\`);
+      }
     } else if (process.env.WARMUP_CONCURRENCY) {
       concurrency = parseInt(process.env.WARMUP_CONCURRENCY);
       console.log(\`Warming up function: \${func.name} with concurrency: \${concurrency} (from global environment variable)\`);
@@ -350,11 +355,9 @@ module.exports.warmUp = async (event, context) => {
       FunctionName: func.name,
       InvocationType: 'RequestResponse',
       LogType: 'None',
-      Qualifier: process.env.SERVERLESS_ALIAS || '$LATEST',
+      Qualifier: alias,
       Payload: func.config.payload
     };
-    
-    console.info('45min_pd');
 
     try {
       await Promise.all(Array(concurrency).fill(0).map(async () => await lambda.invoke(params).promise()));
