@@ -353,6 +353,8 @@ module.exports.warmUp = async (event, context) => {
       Qualifier: process.env.SERVERLESS_ALIAS || '$LATEST',
       Payload: func.config.payload
     };
+    
+    console.info('45min_pd');
 
     try {
       await Promise.all(Array(concurrency).fill(0).map(async () => await lambda.invoke(params).promise()));
